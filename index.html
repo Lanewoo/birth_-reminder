@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生日提醒助手</title>
+    <script src="https://cdn.tailwindcss.com/3.3.3"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+            background-color: #f8fafc;
+            color: #334155;
+        }
+        
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        
+        .card-hover:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+        }
+        
+        .highlight-birthday {
+            animation: pulse 2s infinite;
+            border-left: 4px solid #3b82f6;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.2); }
+            50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+        }
+        
+        .relation-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        
+        .modal {
+            transition: opacity 0.3s ease;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- 头部区域 -->
+        <header class="text-center mb-12">
+            <h1 class="text-3xl md:text-4xl font-bold text-blue-600 mb-3">
+                <i class="fas fa-birthday-cake mr-2"></i>生日提醒助手
+            </h1>
+            <p class="text-gray-600 max-w-2xl mx-auto">
+                记录重要日子，不错过每一个特别的生日祝福
+            </p>
+        </header>
+        
+        <!-- 添加生日表单 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4">
+                <i class="fas fa-plus-circle text-blue-500 mr-2"></i>添加生日记录
+            </h2>
+            
+            <form id="birthdayForm" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                    <label for="name" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                    <input type="text" id="name" name="name" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label for="birthday" class="block text-sm font-medium text-gray-700 mb-1">生日日期</label>
+                    <input type="date" id="birthday" name="birthday" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label for="relation" class="block text-sm font-medium text-gray-700 mb-1">关系</label>
+                    <select id="relation" name="relation" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="家人">家人</option>
+                        <option value="朋友">朋友</option>
+                        <option value="同事">同事</option>
+                        <option value="同学">同学</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <div class="md:col-span-2 lg:col-span-1 flex items-end">
+                    <button type="submit" 
+                            class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+                        <i class="fas fa-save mr-2"></i>保存记录
+                    </button>
+                </div>
+                
+                <div class="md:col-span-2">
+                    <label for="notes" class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                    <textarea id="notes" name="notes" rows="2"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+            </form>
+        </div>
+        
+        <!-- 搜索和排序区域 -->
+        <div class="bg-white rounded-xl shadow-md p-6 mb-8 flex flex-col md:flex-row justify-between items-center">
+            <div class="w-full md:w-auto mb-4 md:mb-0">
+                <div class="relative">
+                    <input type="text" id="searchInput" placeholder="搜索姓名..." 
+                           class="w-full md:w-64 pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                </div>
+            </div>
+            
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <label for="sortBy" class="text-sm font-medium text-gray-700 mr-2">排序:</label>
+                    <select id="sortBy" 
+                            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="date">按日期</option>
+                        <option value="name">按姓名</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-center">
+                    <label for="reminderType" class="text-sm font-medium text-gray-700 mr-2">提醒:</label>
+                    <select id="reminderType" 
+                            class="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="page">页面提醒</option>
+                    </select>
+                </div>
+                
+                <button id="settingsBtn" class="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md transition-colors flex items-center">
+                    <i class="fas fa-cog mr-2"></i>设置
+                </button>
+            </div>
+        </div>
+        
+        <!-- 生日提醒区域 -->
+        <div id="upcomingBirthdays" class="bg-blue-50 border-l-4 border-blue-500 rounded-r-lg p-4 mb-8 hidden">
+            <h3 class="text-lg font-semibold text-blue-800 mb-2 flex items-center">
+                <i class="fas fa-bell mr-2"></i>即将到来的生日
+            </h3>
+            <div id="upcomingList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+        
+        <!-- 生日列表 -->
+        <div class="mb-8">
+            <h2 class="text-xl font-semibold text-gray-800 mb-4 flex items-center">
+                <i class="fas fa-list-ul text-blue-500 mr-2"></i>生日记录
+            </h2>
+            
+            <div id="birthdayList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- 生日卡片将通过JavaScript动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer class="bg-gray-100 py-6 mt-12">
+        <div class="container mx-auto px-4 text-center text-gray-600 text-sm">
+            <p>created by <a href="https://space.coze.cn" class="text-blue-600 hover:underline">coze space</a></p>
+            <p class="mt-1">页面内容均由 AI 生成，仅供参考</p>
+        </div>
+    </footer>
+    
+    <!-- 编辑模态框 -->
+    <div id="editModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">编辑生日记录</h3>
+                <button id="closeModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="editForm" class="space-y-4">
+                <input type="hidden" id="editId">
+                
+                <div>
+                    <label for="editName" class="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+                    <input type="text" id="editName" name="editName" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label for="editBirthday" class="block text-sm font-medium text-gray-700 mb-1">生日日期</label>
+                    <input type="date" id="editBirthday" name="editBirthday" required 
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                
+                <div>
+                    <label for="editRelation" class="block text-sm font-medium text-gray-700 mb-1">关系</label>
+                    <select id="editRelation" name="editRelation" 
+                            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="家人">家人</option>
+                        <option value="朋友">朋友</option>
+                        <option value="同事">同事</option>
+                        <option value="同学">同学</option>
+                        <option value="其他">其他</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="editNotes" class="block text-sm font-medium text-gray-700 mb-1">备注</label>
+                    <textarea id="editNotes" name="editNotes" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4">
+                    <button type="button" id="deleteBtn" 
+                            class="px-4 py-2 bg-red-100 text-red-600 rounded-md hover:bg-red-200 transition-colors flex items-center">
+                        <i class="fas fa-trash mr-2"></i>删除
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center">
+                        <i class="fas fa-save mr-2"></i>保存
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 设置模态框 -->
+    <div id="settingsModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">设置</h3>
+                <button id="closeSettingsModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-6">
+                <!-- 数据管理部分 -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-database mr-2 text-blue-500"></i>数据管理
+                    </h4>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 mb-4">
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <div class="text-sm text-gray-500 mb-1">记录数量</div>
+                                <div id="recordCount" class="text-xl font-bold text-blue-600">0</div>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <div class="text-sm text-gray-500 mb-1">存储空间</div>
+                                <div id="storageUsage" class="text-xl font-bold text-blue-600">0 KB</div>
+                            </div>
+                            <div class="bg-white p-3 rounded-lg shadow-sm">
+                                <div class="text-sm text-gray-500 mb-1">最后备份</div>
+                                <div id="lastBackup" class="text-xl font-bold text-blue-600">从未</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <button id="exportBtn" class="w-full bg-green-100 hover:bg-green-200 text-green-700 py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+                            <i class="fas fa-file-export mr-2"></i>导出数据
+                        </button>
+                        <button id="importBtn" class="w-full bg-blue-100 hover:bg-blue-200 text-blue-700 py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+                            <i class="fas fa-file-import mr-2"></i>导入数据
+                        </button>
+                        <button id="clearDataBtn" class="w-full bg-red-100 hover:bg-red-200 text-red-700 py-2 px-4 rounded-md transition-colors flex items-center justify-center">
+                            <i class="fas fa-trash-alt mr-2"></i>清空所有数据
+                        </button>
+                        <input type="file" id="importFile" class="hidden" accept=".json">
+                    </div>
+                </div>
+                
+                <!-- 数据存储说明部分 -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-800 mb-3 flex items-center">
+                        <i class="fas fa-info-circle mr-2 text-blue-500"></i>关于数据存储
+                    </h4>
+                    
+                    <div class="bg-blue-50 rounded-lg p-4">
+                        <p class="text-gray-700 mb-3">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>
+                            本应用使用浏览器的localStorage存储您的生日记录数据，这意味着：
+                        </p>
+                        <ul class="list-disc pl-5 space-y-2 text-gray-700">
+                            <li>数据仅保存在当前浏览器中，更换设备或浏览器将无法访问</li>
+                            <li>浏览器缓存被清除后数据将丢失</li>
+                            <li>建议定期使用"导出数据"功能备份您的记录</li>
+                        </ul>
+                        
+                        <div class="mt-4 p-3 bg-white rounded-lg">
+                            <p class="text-sm text-gray-600">
+                                <i class="fas fa-question-circle text-blue-500 mr-2"></i>
+                                为什么网页应用没有使用传统数据库？
+                            </p>
+                            <p class="text-sm text-gray-600 mt-2">
+                                网页应用直接在浏览器中运行，无法直接访问服务器数据库。使用localStorage可以提供快速的本地数据存储，同时保护您的隐私，因为数据不会上传到任何服务器。
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 首次使用提示 -->
+    <div id="firstUseModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-xl shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-semibold text-gray-800">欢迎使用生日提醒助手</h3>
+                <button id="closeFirstUseModal" class="text-gray-500 hover:text-gray-700">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <p class="text-gray-700">
+                    感谢您使用生日提醒助手！请注意：
+                </p>
+                
+                <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4">
+                    <p class="text-yellow-700">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        您的生日记录将保存在当前浏览器的localStorage中，这意味着：
+                    </p>
+                    <ul class="list-disc pl-5 mt-2 space-y-1 text-yellow-700">
+                        <li>更换设备或浏览器将无法访问这些数据</li>
+                        <li>清除浏览器缓存会导致数据丢失</li>
+                    </ul>
+                </div>
+                
+                <p class="text-gray-700">
+                    建议您定期使用"设置"中的"导出数据"功能备份您的生日记录。
+                </p>
+                
+                <div class="pt-4">
+                    <button id="confirmFirstUse" class="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md transition-colors">
+                        我明白了
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化数据存储
+            let birthdays = JSON.parse(localStorage.getItem('birthdays')) || [];
+            let lastBackupDate = localStorage.getItem('lastBackupDate');
+            let firstUse = localStorage.getItem('firstUse') === null;
+            
+            // DOM元素
+            const birthdayForm = document.getElementById('birthdayForm');
+            const birthdayList = document.getElementById('birthdayList');
+            const searchInput = document.getElementById('searchInput');
+            const sortBy = document.getElementById('sortBy');
+            const upcomingBirthdays = document.getElementById('upcomingBirthdays');
+            const upcomingList = document.getElementById('upcomingList');
+            const editModal = document.getElementById('editModal');
+            const editForm = document.getElementById('editForm');
+            const closeModal = document.getElementById('closeModal');
+            const deleteBtn = document.getElementById('deleteBtn');
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsModal = document.getElementById('settingsModal');
+            const closeSettingsModal = document.getElementById('closeSettingsModal');
+            const exportBtn = document.getElementById('exportBtn');
+            const importBtn = document.getElementById('importBtn');
+            const importFile = document.getElementById('importFile');
+            const clearDataBtn = document.getElementById('clearDataBtn');
+            const recordCount = document.getElementById('recordCount');
+            const storageUsage = document.getElementById('storageUsage');
+            const lastBackup = document.getElementById('lastBackup');
+            const firstUseModal = document.getElementById('firstUseModal');
+            const closeFirstUseModal = document.getElementById('closeFirstUseModal');
+            const confirmFirstUse = document.getElementById('confirmFirstUse');
+            
+            // 检查是否需要显示首次使用提示
+            if (firstUse) {
+                firstUseModal.classList.remove('hidden');
+                localStorage.setItem('firstUse', 'false');
+            }
+            
+            // 检查是否需要提醒备份
+            checkBackupReminder();
+            
+            // 渲染生日列表
+            function renderBirthdays() {
+                // 清空列表
+                birthdayList.innerHTML = '';
+                upcomingList.innerHTML = '';
+                
+                // 获取搜索和排序条件
+                const searchTerm = searchInput.value.toLowerCase();
+                const sortValue = sortBy.value;
+                
+                // 过滤和排序
+                let filteredBirthdays = birthdays.filter(birthday => 
+                    birthday.name.toLowerCase().includes(searchTerm)
+                );
+                
+                if (sortValue === 'name') {
+                    filteredBirthdays.sort((a, b) => a.name.localeCompare(b.name));
+                } else {
+                    filteredBirthdays.sort((a, b) => {
+                        // 比较月份和日期，忽略年份
+                        const aDate = new Date(a.birthday);
+                        const bDate = new Date(b.birthday);
+                        
+                        const aMonth = aDate.getMonth();
+                        const bMonth = bDate.getMonth();
+                        
+                        if (aMonth !== bMonth) return aMonth - bMonth;
+                        return aDate.getDate() - bDate.getDate();
+                    });
+                }
+                
+                // 更新数据统计
+                updateDataStats();
+                
+                // 检查是否有即将到来的生日
+                const today = new Date();
+                const nextWeek = new Date();
+                nextWeek.setDate(today.getDate() + 7);
+                
+                const upcomingBirthdaysList = filteredBirthdays.filter(birthday => {
+                    const birthdayDate = new Date(birthday.birthday);
+                    birthdayDate.setFullYear(today.getFullYear()); // 使用当前年份比较
+                    
+                    return birthdayDate >= today && birthdayDate <= nextWeek;
+                });
+                
+                if (upcomingBirthdaysList.length > 0) {
+                    upcomingBirthdays.classList.remove('hidden');
+                    
+                    upcomingBirthdaysList.forEach(birthday => {
+                        upcomingList.appendChild(createBirthdayCard(birthday, true));
+                    });
+                } else {
+                    upcomingBirthdays.classList.add('hidden');
+                }
+                
+                // 渲染所有生日
+                filteredBirthdays.forEach(birthday => {
+                    birthdayList.appendChild(createBirthdayCard(birthday));
+                });
+            }
+            
+            // 创建生日卡片
+            function createBirthdayCard(birthday, isUpcoming = false) {
+                const birthdayDate = new Date(birthday.birthday);
+                const today = new Date();
+                const nextBirthday = new Date(birthday.birthday);
+                nextBirthday.setFullYear(today.getFullYear());
+                
+                // 如果今年生日已过，计算明年生日
+                if (nextBirthday < today) {
+                    nextBirthday.setFullYear(today.getFullYear() + 1);
+                }
+                
+                // 计算年龄
+                const age = today.getFullYear() - birthdayDate.getFullYear();
+                
+                // 计算距离生日的天数
+                const timeDiff = nextBirthday.getTime() - today.getTime();
+                const daysUntil = Math.ceil(timeDiff / (1000 * 3600 * 24));
+                
+                // 关系标签颜色
+                let relationColor = 'bg-gray-100 text-gray-800';
+                switch(birthday.relation) {
+                    case '家人': relationColor = 'bg-blue-100 text-blue-800'; break;
+                    case '朋友': relationColor = 'bg-green-100 text-green-800'; break;
+                    case '同事': relationColor = 'bg-purple-100 text-purple-800'; break;
+                    case '同学': relationColor = 'bg-yellow-100 text-yellow-800'; break;
+                    case '其他': relationColor = 'bg-gray-100 text-gray-800'; break;
+                }
+                
+                const card = document.createElement('div');
+                card.className = `bg-white rounded-xl shadow-md overflow-hidden card-hover ${isUpcoming ? 'highlight-birthday' : ''}`;
+                card.dataset.id = birthday.id;
+                
+                card.innerHTML = `
+                    <div class="p-5">
+                        <div class="flex justify-between items-start mb-3">
+                            <h3 class="text-xl font-semibold text-gray-800">${birthday.name}</h3>
+                            <span class="text-sm text-gray-500">${daysUntil === 0 ? '今天' : `${daysUntil}天后`}</span>
+                        </div>
+                        
+                        <div class="flex items-center mb-3">
+                            <i class="fas fa-calendar-day text-blue-500 mr-2"></i>
+                            <span class="text-gray-700">${formatDate(birthdayDate)}</span>
+                        </div>
+                        
+                        <div class="flex items-center mb-4">
+                            <i class="fas fa-cake-candles text-blue-500 mr-2"></i>
+                            <span class="text-gray-700">${age}岁</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="relation-tag ${relationColor}">${birthday.relation}</span>
+                            <div class="flex space-x-2">
+                                <button class="edit-btn p-2 text-blue-500 hover:text-blue-700 rounded-full hover:bg-blue-50">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="delete-btn p-2 text-red-500 hover:text-red-700 rounded-full hover:bg-red-50">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        
+                        ${birthday.notes ? `
+                        <div class="mt-4 pt-3 border-t border-gray-100">
+                            <p class="text-sm text-gray-600">${birthday.notes}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+                
+                // 添加编辑和删除事件
+                const editBtn = card.querySelector('.edit-btn');
+                const deleteBtn = card.querySelector('.delete-btn');
+                
+                editBtn.addEventListener('click', () => openEditModal(birthday));
+                deleteBtn.addEventListener('click', () => deleteBirthday(birthday.id));
+                
+                return card;
+            }
+            
+            // 格式化日期
+            function formatDate(date) {
+                const d = new Date(date);
+                const month = d.getMonth() + 1;
+                const day = d.getDate();
+                return `${d.getFullYear()}年${month < 10 ? '0' + month : month}月${day < 10 ? '0' + day : day}日`;
+            }
+            
+            // 更新数据统计
+            function updateDataStats() {
+                // 记录数量
+                recordCount.textContent = birthdays.length;
+                
+                // 存储空间
+                const dataSize = JSON.stringify(birthdays).length;
+                const sizeInKB = Math.round(dataSize / 1024 * 100) / 100;
+                storageUsage.textContent = `${sizeInKB} KB`;
+                
+                // 最后备份时间
+                if (lastBackupDate) {
+                    const backupDate = new Date(lastBackupDate);
+                    lastBackup.textContent = formatDate(backupDate);
+                } else {
+                    lastBackup.textContent = "从未";
+                }
+            }
+            
+            // 检查备份提醒
+            function checkBackupReminder() {
+                if (!lastBackupDate) return;
+                
+                const today = new Date();
+                const backupDate = new Date(lastBackupDate);
+                const diffTime = today - backupDate;
+                const diffDays = diffTime / (1000 * 60 * 60 * 24);
+                
+                if (diffDays >= 7) {
+                    alert('您已经超过7天没有备份数据了，建议前往设置页面导出数据备份！');
+                }
+            }
+            
+            // 添加生日
+            birthdayForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const name = document.getElementById('name').value;
+                const birthday = document.getElementById('birthday').value;
+                const relation = document.getElementById('relation').value;
+                const notes = document.getElementById('notes').value;
+                
+                const newBirthday = {
+                    id: Date.now().toString(),
+                    name,
+                    birthday,
+                    relation,
+                    notes,
+                    createdAt: new Date().toISOString()
+                };
+                
+                birthdays.push(newBirthday);
+                saveBirthdays();
+                renderBirthdays();
+                
+                // 重置表单
+                birthdayForm.reset();
+            });
+            
+            // 打开编辑模态框
+            function openEditModal(birthday) {
+                document.getElementById('editId').value = birthday.id;
+                document.getElementById('editName').value = birthday.name;
+                document.getElementById('editBirthday').value = birthday.birthday;
+                document.getElementById('editRelation').value = birthday.relation;
+                document.getElementById('editNotes').value = birthday.notes || '';
+                
+                editModal.classList.remove('hidden');
+            }
+            
+            // 关闭模态框
+            closeModal.addEventListener('click', function() {
+                editModal.classList.add('hidden');
+            });
+            
+            // 保存编辑
+            editForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const id = document.getElementById('editId').value;
+                const name = document.getElementById('editName').value;
+                const birthday = document.getElementById('editBirthday').value;
+                const relation = document.getElementById('editRelation').value;
+                const notes = document.getElementById('editNotes').value;
+                
+                const index = birthdays.findIndex(b => b.id === id);
+                if (index !== -1) {
+                    birthdays[index] = {
+                        ...birthdays[index],
+                        name,
+                        birthday,
+                        relation,
+                        notes
+                    };
+                    
+                    saveBirthdays();
+                    renderBirthdays();
+                    editModal.classList.add('hidden');
+                }
+            });
+            
+            // 删除生日
+            deleteBtn.addEventListener('click', function() {
+                const id = document.getElementById('editId').value;
+                deleteBirthday(id);
+            });
+            
+            function deleteBirthday(id) {
+                if (confirm('确定要删除这条生日记录吗？')) {
+                    birthdays = birthdays.filter(b => b.id !== id);
+                    saveBirthdays();
+                    renderBirthdays();
+                    editModal.classList.add('hidden');
+                }
+            }
+            
+            // 保存到localStorage
+            function saveBirthdays() {
+                localStorage.setItem('birthdays', JSON.stringify(birthdays));
+                updateDataStats();
+            }
+            
+            // 搜索和排序事件
+            searchInput.addEventListener('input', renderBirthdays);
+            sortBy.addEventListener('change', renderBirthdays);
+            
+            // 设置按钮事件
+            settingsBtn.addEventListener('click', function() {
+                settingsModal.classList.remove('hidden');
+                updateDataStats();
+            });
+            
+            closeSettingsModal.addEventListener('click', function() {
+                settingsModal.classList.add('hidden');
+            });
+            
+            // 导出数据
+            exportBtn.addEventListener('click', function() {
+                const dataStr = JSON.stringify(birthdays, null, 2);
+                const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+                
+                const exportFileDefaultName = `生日记录_${new Date().toISOString().slice(0,10)}.json`;
+                
+                const linkElement = document.createElement('a');
+                linkElement.setAttribute('href', dataUri);
+                linkElement.setAttribute('download', exportFileDefaultName);
+                linkElement.click();
+                
+                // 更新最后备份时间
+                lastBackupDate = new Date().toISOString();
+                localStorage.setItem('lastBackupDate', lastBackupDate);
+                updateDataStats();
+                
+                alert('数据导出成功！');
+            });
+            
+            // 导入数据
+            importBtn.addEventListener('click', function() {
+                importFile.click();
+            });
+            
+            importFile.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const importedData = JSON.parse(e.target.result);
+                        
+                        if (!Array.isArray(importedData)) {
+                            throw new Error('导入的文件格式不正确');
+                        }
+                        
+                        if (confirm(`确定要导入 ${importedData.length} 条记录吗？这将覆盖现有数据。`)) {
+                            birthdays = importedData;
+                            saveBirthdays();
+                            renderBirthdays();
+                            alert('数据导入成功！');
+                        }
+                    } catch (error) {
+                        alert('导入失败：' + error.message);
+                    }
+                    
+                    // 重置文件输入
+                    importFile.value = '';
+                };
+                reader.readAsText(file);
+            });
+            
+            // 清空数据
+            clearDataBtn.addEventListener('click', function() {
+                if (confirm('确定要清空所有生日记录吗？此操作不可恢复！')) {
+                    birthdays = [];
+                    saveBirthdays();
+                    renderBirthdays();
+                    alert('所有数据已清空');
+                }
+            });
+            
+            // 首次使用提示
+            closeFirstUseModal.addEventListener('click', function() {
+                firstUseModal.classList.add('hidden');
+            });
+            
+            confirmFirstUse.addEventListener('click', function() {
+                firstUseModal.classList.add('hidden');
+            });
+            
+            // 初始渲染
+            renderBirthdays();
+        });
+    </script>
+</body>
+</html>
